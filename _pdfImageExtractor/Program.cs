@@ -162,17 +162,31 @@ class Program
                         string xNewImageFileName = Path.GetFileName (xImageFilePath).Replace ("temp-", string.Empty);
                         string? xNewImageFilePath = null;
 
-                        using MagickImage xImage = new (xImageFilePath);
-
-                        if (xImage.ChannelCount < 3)
+                        try
                         {
-                            Directory.CreateDirectory (Path.Join (Path.GetDirectoryName (xImageFilePath), "Grayscale")); // Lazy coding
-                            xNewImageFilePath = Path.Join (Path.GetDirectoryName (xImageFilePath), "Grayscale", xNewImageFileName);
+                            using MagickImage xImage = new (xImageFilePath);
+
+                            if (xImage.Width < 100 && xImage.Height < 100) // Many are page design components
+                            {
+                                File.Delete (xImageFilePath);
+                                continue;
+                            }
+
+                            if (xImage.ChannelCount < 3)
+                            {
+                                Directory.CreateDirectory (Path.Join (Path.GetDirectoryName (xImageFilePath), "Grayscale")); // Lazy coding
+                                xNewImageFilePath = Path.Join (Path.GetDirectoryName (xImageFilePath), "Grayscale", xNewImageFileName);
+                            }
+
+                            else xNewImageFilePath = Path.Join (Path.GetDirectoryName (xImageFilePath), xNewImageFileName);
+
+                            File.Move (xImageFilePath, xNewImageFilePath);
                         }
 
-                        else xNewImageFilePath = Path.Join (Path.GetDirectoryName (xImageFilePath), xNewImageFileName);
-
-                        File.Move (xImageFilePath, xNewImageFilePath);
+                        catch
+                        {
+                            // We wont touch what we dont understand
+                        }
                     }
                 }
             }
