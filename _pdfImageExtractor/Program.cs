@@ -98,7 +98,22 @@ class Program
                 Console.ResetColor ();
 
                 if (Directory.Exists (destDirectoryPath) && xReextractImages)
-                    Directory.Delete (destDirectoryPath, recursive: true);
+                {
+                    try
+                    {
+                        Directory.Delete (destDirectoryPath, recursive: true);
+                    }
+
+                    catch
+                    {
+                        Console.BackgroundColor = ConsoleColor.Red;
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine ($"Failed to delete: {destDirectoryPath}");
+                        Console.ResetColor ();
+
+                        return;
+                    }
+                }
 
                 Directory.CreateDirectory (destDirectoryPath);
 
