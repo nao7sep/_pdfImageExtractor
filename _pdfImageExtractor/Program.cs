@@ -237,13 +237,25 @@ class Program
                                 continue;
                             }
 
+                            void MoveFileOrSaveAsJpeg (MagickImage image, string oldFilePath, string newFilePath)
+                            {
+                                if (image.Format == MagickFormat.Jpeg)
+                                {
+                                    File.Move (oldFilePath, newFilePath);
+                                    return;
+                                }
+
+                                image.Write (Path.ChangeExtension (newFilePath, ".jpg"), MagickFormat.Jpeg);
+                                File.Delete (oldFilePath);
+                            }
+
                             using MagickImage xImage = new (xImageFilePath);
 
                             if (xImage.Width < 250 && xImage.Height < 250) // Mostly page components
                             {
                                 Directory.CreateDirectory (xSmallDirectoryPath);
                                 xNewImageFilePath = Path.Join (xSmallDirectoryPath, xNewImageFileName);
-                                File.Move (xImageFilePath, xNewImageFilePath);
+                                MoveFileOrSaveAsJpeg (xImage, xImageFilePath, xNewImageFilePath);
                                 continue;
                             }
 
@@ -291,7 +303,7 @@ class Program
 
                             else xNewImageFilePath = Path.Join (xDestSubdirectoryPath, xNewImageFileName);
 
-                            File.Move (xImageFilePath, xNewImageFilePath);
+                            MoveFileOrSaveAsJpeg (xImage, xImageFilePath, xNewImageFilePath);
 
                             xImage.Dispose ();
                             GC.Collect ();
