@@ -70,6 +70,8 @@ class Program
     {
         try
         {
+            Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+
             if (Parameters.Any () == false && File.Exists (ParametersFilePath) == false)
             {
                 File.WriteAllLines (ParametersFilePath,
@@ -208,16 +210,33 @@ class Program
 
                     LogsWriter.Flush ();
 
-                    string xSmallDirectoryPath = Path.Join (xDestSubdirectoryPath, "Small"),
+                    DupFinder xFinder = new ();
+
+                    string xDupDirectoryPath = Path.Join (xDestSubdirectoryPath, "Duplicates"),
+                        xSmallDirectoryPath = Path.Join (xDestSubdirectoryPath, "Small"),
                         xGrayscaleDirectoryPath = Path.Join (xDestSubdirectoryPath, "Grayscale");
 
-                    foreach (string xImageFilePath in Directory.GetFiles (xDestSubdirectoryPath, "*.*", SearchOption.TopDirectoryOnly))
+                    foreach (string xImageFilePath in Directory.GetFiles (xDestSubdirectoryPath, "*.*", SearchOption.TopDirectoryOnly).Order (StringComparer.OrdinalIgnoreCase))
                     {
                         string xNewImageFileName = Path.GetFileName (xImageFilePath).Replace ("temp-", string.Empty);
                         string? xNewImageFilePath = null;
 
                         try
                         {
+                            FileInfo xFile = new (xImageFilePath);
+                            string xHash = DupFinder.ComputeHash (xImageFilePath);
+
+                            if (xFinder.Contains (xHash, xImageFilePath) == false)
+                                xFinder.Add (xHash, xImageFilePath);
+
+                            else
+                            {
+                                Directory.CreateDirectory (xDupDirectoryPath);
+                                xNewImageFilePath = Path.Join (xDupDirectoryPath, xNewImageFileName);
+                                File.Move (xImageFilePath, xNewImageFilePath);
+                                continue;
+                            }
+
                             using MagickImage xImage = new (xImageFilePath);
 
                             if (xImage.Width < 250 && xImage.Height < 250) // Mostly page components
@@ -273,6 +292,9 @@ class Program
                             else xNewImageFilePath = Path.Join (xDestSubdirectoryPath, xNewImageFileName);
 
                             File.Move (xImageFilePath, xNewImageFilePath);
+
+                            xImage.Dispose ();
+                            GC.Collect ();
                         }
 
                         catch (Exception xException)
