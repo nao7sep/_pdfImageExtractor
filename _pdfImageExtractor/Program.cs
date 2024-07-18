@@ -208,6 +208,9 @@ class Program
 
                     LogsWriter.Flush ();
 
+                    string xSmallDirectoryPath = Path.Join (xDestSubdirectoryPath, "Small"),
+                        xGrayscaleDirectoryPath = Path.Join (xDestSubdirectoryPath, "Grayscale");
+
                     foreach (string xImageFilePath in Directory.GetFiles (xDestSubdirectoryPath, "*.*", SearchOption.TopDirectoryOnly))
                     {
                         string xNewImageFileName = Path.GetFileName (xImageFilePath).Replace ("temp-", string.Empty);
@@ -217,19 +220,57 @@ class Program
                         {
                             using MagickImage xImage = new (xImageFilePath);
 
-                            if (xImage.Width < 100 && xImage.Height < 100) // Many are page design components
+                            if (xImage.Width < 250 && xImage.Height < 250) // Mostly page components
                             {
-                                File.Delete (xImageFilePath);
+                                Directory.CreateDirectory (xSmallDirectoryPath);
+                                xNewImageFilePath = Path.Join (xSmallDirectoryPath, xNewImageFileName);
+                                File.Move (xImageFilePath, xNewImageFilePath);
                                 continue;
                             }
 
-                            if (xImage.ChannelCount < 3)
+                            bool IsColorful (MagickImage image)
                             {
-                                Directory.CreateDirectory (Path.Join (Path.GetDirectoryName (xImageFilePath), "Grayscale")); // Lazy coding
-                                xNewImageFilePath = Path.Join (Path.GetDirectoryName (xImageFilePath), "Grayscale", xNewImageFileName);
+                                if (image.ColorType == ColorType.Bilevel ||
+                                        image.ColorType == ColorType.Grayscale ||
+                                        image.ColorType == ColorType.GrayscaleAlpha)
+                                    return false;
+
+                                if (image.ChannelCount < 3)
+                                    return false;
+
+                                var xPixels = image.GetPixels ();
+
+                                int xCheckedPixelCount = 0,
+                                    xColorfulPixelCount = 0;
+
+                                for (int x = 0; x < image.Width; x ++)
+                                {
+                                    for (int y = 0; y < image.Height; y ++)
+                                    {
+                                        var xPixel = xPixels.GetPixel (x, y);
+                                        var xColor = xPixel.ToColor ();
+
+                                        xCheckedPixelCount ++;
+
+                                        if (xColor!.R != xColor!.G || xColor!.G != xColor!.B)
+                                            xColorfulPixelCount ++;
+
+                                        // When 100 pixels have been checked, if roughly 3% are colorful
+                                        if (xCheckedPixelCount >= 100 && xColorfulPixelCount * 33 >= xCheckedPixelCount)
+                                            return true;
+                                    }
+                                }
+
+                                return false;
                             }
 
-                            else xNewImageFilePath = Path.Join (Path.GetDirectoryName (xImageFilePath), xNewImageFileName);
+                            if (IsColorful (xImage) == false)
+                            {
+                                Directory.CreateDirectory (xGrayscaleDirectoryPath);
+                                xNewImageFilePath = Path.Join (xGrayscaleDirectoryPath, xNewImageFileName);
+                            }
+
+                            else xNewImageFilePath = Path.Join (xDestSubdirectoryPath, xNewImageFileName);
 
                             File.Move (xImageFilePath, xNewImageFilePath);
                         }
