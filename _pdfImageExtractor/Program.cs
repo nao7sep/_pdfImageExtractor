@@ -7,11 +7,11 @@ namespace _pdfImageExtractor;
 
 class Program
 {
-    private static string AppDirectoryPath => Path.GetDirectoryName (Assembly.GetExecutingAssembly ().Location)!;
+    private readonly static string AppDirectoryPath = Path.GetDirectoryName (Assembly.GetExecutingAssembly ().Location)!;
 
-    private static string ParametersFilePath => Path.Join (AppDirectoryPath, "Parameters.txt");
+    private readonly static string ParametersFilePath = Path.Join (AppDirectoryPath, "Parameters.txt");
 
-    private static Lazy <IEnumerable <string>> _parameters = new (() =>
+    private readonly static Lazy <IEnumerable <string>> _parameters = new (() =>
     {
         if (File.Exists (ParametersFilePath))
             return File.ReadAllLines (ParametersFilePath, Encoding.UTF8).
@@ -22,6 +22,49 @@ class Program
     });
 
     private static IEnumerable <string> Parameters => _parameters.Value;
+
+    private readonly static string LogsDirectoryPath = Path.Join (AppDirectoryPath, "Logs");
+
+    private readonly static string LogsFilePath = Path.Join (LogsDirectoryPath, DateTime.UtcNow.ToString ("yyyyMMdd'T'HHmmss'Z.log'"));
+
+    private readonly static Lazy <StreamWriter> _logsWriter = new (() =>
+    {
+        Directory.CreateDirectory (LogsDirectoryPath);
+        return new (LogsFilePath, append: true, Encoding.UTF8);
+    });
+
+    private static StreamWriter LogsWriter => _logsWriter.Value;
+
+    private static void WriteLineToConsole (string message)
+    {
+        Console.WriteLine (message);
+        LogsWriter.WriteLine (message);
+    }
+
+    private static void WriteLineToConsole (string message, ConsoleColor backgroundColor, ConsoleColor? foregroundColor = null)
+    {
+        Console.BackgroundColor = backgroundColor;
+
+        if (foregroundColor.HasValue)
+            Console.ForegroundColor = foregroundColor.Value;
+
+        else
+        {
+            switch (backgroundColor)
+            {
+                case ConsoleColor.Red:
+                    Console.ForegroundColor = ConsoleColor.White;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        WriteLineToConsole (message);
+
+        Console.ResetColor ();
+    }
 
     static void Main (string [] args)
     {
@@ -45,7 +88,7 @@ class Program
                 ],
                 Encoding.UTF8);
 
-                Console.WriteLine ("Parameters file created.");
+                WriteLineToConsole ("Parameters file created.");
                 return;
             }
 
@@ -54,7 +97,7 @@ class Program
 
             if (File.Exists (xPdfImagesExePath) == false)
             {
-                Console.WriteLine ("pdfimages.exe not found.");
+                WriteLineToConsole ("pdfimages.exe not found.");
                 return;
             }
 
@@ -70,32 +113,27 @@ class Program
             {
                 if (Directory.Exists (sourceDirectoryPath) == false)
                 {
-                    Console.WriteLine ($"Source directory not found: {sourceDirectoryPath}");
+                    WriteLineToConsole ($"Source directory not found: {sourceDirectoryPath}");
                     return;
                 }
 
                 if (string.IsNullOrEmpty (destDirectoryPath) || Path.IsPathFullyQualified (destDirectoryPath) == false)
                 {
-                    Console.WriteLine ($"Invalid dest directory path: {destDirectoryPath}");
+                    WriteLineToConsole ($"Invalid dest directory path: {destDirectoryPath}");
                     return;
                 }
 
                 if (excludedFileNames.Any (x => string.IsNullOrEmpty (x)))
                 {
-                    Console.WriteLine ("At least one excluded file name is empty.");
+                    WriteLineToConsole ("At least one excluded file name is empty.");
                     return;
                 }
 
-                Console.BackgroundColor = ConsoleColor.Blue;
-                Console.ForegroundColor = ConsoleColor.White;
-
-                Console.WriteLine ("Source directory: " + sourceDirectoryPath);
-                Console.WriteLine ("Dest directory: " + destDirectoryPath);
+                WriteLineToConsole ("Source directory: " + sourceDirectoryPath);
+                WriteLineToConsole ("Dest directory: " + destDirectoryPath);
 
                 if (excludedFileNames.Any ())
-                    Console.WriteLine ("Excluded file names: " + string.Join (", ", excludedFileNames));
-
-                Console.ResetColor ();
+                    WriteLineToConsole ("Excluded file names: " + string.Join (", ", excludedFileNames));
 
                 if (Directory.Exists (destDirectoryPath) && xReextractImages)
                 {
@@ -106,11 +144,7 @@ class Program
 
                     catch
                     {
-                        Console.BackgroundColor = ConsoleColor.Red;
-                        Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine ($"Failed to delete: {destDirectoryPath}");
-                        Console.ResetColor ();
-
+                        WriteLineToConsole ($"Failed to delete: {destDirectoryPath}", ConsoleColor.Red);
                         return;
                     }
                 }
@@ -123,7 +157,7 @@ class Program
 
                     if (excludedFileNames.Contains (xPdfFileName, StringComparer.OrdinalIgnoreCase))
                     {
-                        Console.WriteLine ($"Images extraction skipped for: {xPdfFileName}");
+                        WriteLineToConsole ($"Images extraction skipped for: {xPdfFileName}");
                         continue;
                     }
 
@@ -131,11 +165,11 @@ class Program
 
                     if (Directory.Exists (xDestSubdirectoryPath))
                     {
-                        Console.WriteLine ($"Images already extracted for: {xPdfFileName}");
+                        WriteLineToConsole ($"Images already extracted for: {xPdfFileName}");
                         continue;
                     }
 
-                    Console.WriteLine ($"Extracting images for: {xPdfFileName}");
+                    WriteLineToConsole ($"Extracting images for: {xPdfFileName}");
 
                     Directory.CreateDirectory (xDestSubdirectoryPath);
 
@@ -156,13 +190,13 @@ class Program
                     xProcess.OutputDataReceived += (sender, e) =>
                     {
                         if (string.IsNullOrEmpty (e.Data) == false)
-                            Console.WriteLine (e.Data);
+                            WriteLineToConsole (e.Data);
                     };
 
                     xProcess.ErrorDataReceived += (sender, e) =>
                     {
                         if (string.IsNullOrEmpty (e.Data) == false)
-                            Console.WriteLine (e.Data);
+                            WriteLineToConsole (e.Data, ConsoleColor.Red);
                     };
 
                     xProcess.Start ();
@@ -171,6 +205,8 @@ class Program
                     xProcess.BeginErrorReadLine ();
 
                     xProcess.WaitForExit ();
+
+                    LogsWriter.Flush ();
 
                     foreach (string xImageFilePath in Directory.GetFiles (xDestSubdirectoryPath, "*.*", SearchOption.TopDirectoryOnly))
                     {
@@ -198,11 +234,13 @@ class Program
                             File.Move (xImageFilePath, xNewImageFilePath);
                         }
 
-                        catch
+                        catch (Exception xException)
                         {
-                            // We wont touch what we dont understand
+                            WriteLineToConsole (xException.ToString (), ConsoleColor.Red);
                         }
                     }
+
+                    LogsWriter.Flush ();
                 }
             }
 
@@ -233,19 +271,20 @@ class Program
 
         catch (Exception xException)
         {
-            Console.BackgroundColor = ConsoleColor.Red;
-            Console.ForegroundColor = ConsoleColor.White;
-
-            Console.WriteLine (xException.ToString ());
-
-            Console.ResetColor ();
+            WriteLineToConsole (xException.ToString (), ConsoleColor.Red);
         }
 
         finally
         {
+            // For us to know the program hasnt crashed
+            LogsWriter.WriteLine ("End of log.");
+
             Console.Write ("Press any key to exit: ");
             Console.ReadKey (true);
             Console.WriteLine ();
+
+            if (_logsWriter.IsValueCreated) // Just formality; destruction of a lazy-loaded object
+                _logsWriter.Value.Dispose ();
         }
     }
 }
