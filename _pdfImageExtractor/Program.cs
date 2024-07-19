@@ -180,8 +180,9 @@ class Program
                         StartInfo = new ()
                         {
                             FileName = xPdfImagesExePath,
+                            // -j is unnecessary; the app now saves non-JPEG images as JPEG
                             // -list would output too much redundant info
-                            Arguments = $"-j \"{xPdfFilePath}\" \"{xDestSubdirectoryPath}\\temp\"",
+                            Arguments = $"\"{xPdfFilePath}\" \"{xDestSubdirectoryPath}\\temp\"",
                             UseShellExecute = false,
                             CreateNoWindow = true,
                             RedirectStandardOutput = true,
@@ -311,6 +312,7 @@ class Program
 
                         catch (Exception xException)
                         {
+                            WriteLineToConsole ($"Failed to process: {Path.GetFileName (xImageFilePath)}", ConsoleColor.Red);
                             WriteLineToConsole (xException.ToString (), ConsoleColor.Red);
                         }
                     }
