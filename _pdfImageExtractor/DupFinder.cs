@@ -17,7 +17,7 @@ public class DupFinder
 
         finally
         {
-            GC.Collect ();
+            // GC.Collect ();
         }
     }
 

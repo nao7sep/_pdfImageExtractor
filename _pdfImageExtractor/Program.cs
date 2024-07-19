@@ -258,7 +258,7 @@ class Program
                             using MagickImage xImage = new (xImageFilePath);
 
                             if ((xImage.Width < 250 && xImage.Height < 250) ||
-                                (xImage.Width * 25 < xImage.Height || xImage.Height * 25 < xImage.Width)) // Mostly page components
+                                (xImage.Width * 5 < xImage.Height || xImage.Height * 5 < xImage.Width)) // Mostly page components
                             {
                                 Directory.CreateDirectory (xSmallDirectoryPath);
                                 xNewImageFilePath = Path.Join (xSmallDirectoryPath, xNewImageFileName);
@@ -313,7 +313,7 @@ class Program
                             MoveFileOrSaveAsJpeg (xImage, xImageFilePath, xNewImageFilePath);
 
                             xImage.Dispose ();
-                            GC.Collect ();
+                            // GC.Collect ();
                         }
 
                         catch (Exception xException)
