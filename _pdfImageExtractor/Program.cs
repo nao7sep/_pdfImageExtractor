@@ -257,7 +257,8 @@ class Program
 
                             using MagickImage xImage = new (xImageFilePath);
 
-                            if (xImage.Width < 250 && xImage.Height < 250) // Mostly page components
+                            if ((xImage.Width < 250 && xImage.Height < 250) ||
+                                (xImage.Width * 25 < xImage.Height || xImage.Height * 25 < xImage.Width)) // Mostly page components
                             {
                                 Directory.CreateDirectory (xSmallDirectoryPath);
                                 xNewImageFilePath = Path.Join (xSmallDirectoryPath, xNewImageFileName);
