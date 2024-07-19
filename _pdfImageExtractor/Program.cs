@@ -52,6 +52,10 @@ class Program
         {
             switch (backgroundColor)
             {
+                case ConsoleColor.Yellow:
+                    Console.ForegroundColor = ConsoleColor.Black;
+                    break;
+
                 case ConsoleColor.Red:
                     Console.ForegroundColor = ConsoleColor.White;
                     break;
@@ -163,9 +167,10 @@ class Program
                         continue;
                     }
 
-                    string xDestSubdirectoryPath = Path.Join (destDirectoryPath, Path.GetFileNameWithoutExtension (xPdfFilePath));
+                    string xDestSubdirectoryPath = Path.Join (destDirectoryPath, Path.GetFileNameWithoutExtension (xPdfFilePath)),
+                        xZipFilePath = xDestSubdirectoryPath + ".zip";
 
-                    if (Directory.Exists (xDestSubdirectoryPath))
+                    if (Directory.Exists (xDestSubdirectoryPath) || File.Exists (xZipFilePath))
                     {
                         WriteLineToConsole ($"Images already extracted for: {xPdfFileName}");
                         continue;
@@ -199,7 +204,7 @@ class Program
                     xProcess.ErrorDataReceived += (sender, e) =>
                     {
                         if (string.IsNullOrEmpty (e.Data) == false)
-                            WriteLineToConsole (e.Data, ConsoleColor.Red);
+                            WriteLineToConsole (e.Data, ConsoleColor.Yellow);
                     };
 
                     xProcess.Start ();
