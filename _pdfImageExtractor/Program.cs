@@ -176,7 +176,8 @@ class Program
                         continue;
                     }
 
-                    WriteLineToConsole ($"Extracting images for: {xPdfFileName}");
+                    WriteLineToConsole ($"Extracting images for: {xPdfFileName}",
+                        backgroundColor: ConsoleColor.Yellow, foregroundColor: ConsoleColor.Black);
 
                     Directory.CreateDirectory (xDestSubdirectoryPath);
 
@@ -224,6 +225,11 @@ class Program
 
                     foreach (string xImageFilePath in Directory.GetFiles (xDestSubdirectoryPath, "*.*", SearchOption.TopDirectoryOnly).Order (StringComparer.OrdinalIgnoreCase))
                     {
+                        // Google Drive may create Desktop.ini to customize folder icons.
+
+                        if (Path.GetExtension (xImageFilePath).Equals (".ini", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
                         string xNewImageFileName = Path.GetFileName (xImageFilePath).Replace ("temp-", string.Empty);
                         string? xNewImageFilePath = null;
 
