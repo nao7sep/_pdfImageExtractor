@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text;
 using ImageMagick;
 
-namespace _pdfImageExtractor;
+namespace pdfImageExtractor;
 
 class Program
 {

@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace _pdfImageExtractor;
+namespace pdfImageExtractor;
 
 public class DupFinder
 {
